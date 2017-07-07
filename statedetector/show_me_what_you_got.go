@@ -19,6 +19,8 @@ type ProcessStateReporter interface {
 
 type XfsTracer interface {
 	Run() error
+	Start() error
+	Stop() error
 }
 
 type StateDetector interface {

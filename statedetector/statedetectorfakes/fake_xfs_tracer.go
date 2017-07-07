@@ -17,6 +17,24 @@ type FakeXfsTracer struct {
 	runReturnsOnCall map[int]struct {
 		result1 error
 	}
+	StartStub        func() error
+	startMutex       sync.RWMutex
+	startArgsForCall []struct{}
+	startReturns     struct {
+		result1 error
+	}
+	startReturnsOnCall map[int]struct {
+		result1 error
+	}
+	StopStub        func() error
+	stopMutex       sync.RWMutex
+	stopArgsForCall []struct{}
+	stopReturns     struct {
+		result1 error
+	}
+	stopReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -61,11 +79,95 @@ func (fake *FakeXfsTracer) RunReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeXfsTracer) Start() error {
+	fake.startMutex.Lock()
+	ret, specificReturn := fake.startReturnsOnCall[len(fake.startArgsForCall)]
+	fake.startArgsForCall = append(fake.startArgsForCall, struct{}{})
+	fake.recordInvocation("Start", []interface{}{})
+	fake.startMutex.Unlock()
+	if fake.StartStub != nil {
+		return fake.StartStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.startReturns.result1
+}
+
+func (fake *FakeXfsTracer) StartCallCount() int {
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	return len(fake.startArgsForCall)
+}
+
+func (fake *FakeXfsTracer) StartReturns(result1 error) {
+	fake.StartStub = nil
+	fake.startReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeXfsTracer) StartReturnsOnCall(i int, result1 error) {
+	fake.StartStub = nil
+	if fake.startReturnsOnCall == nil {
+		fake.startReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.startReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeXfsTracer) Stop() error {
+	fake.stopMutex.Lock()
+	ret, specificReturn := fake.stopReturnsOnCall[len(fake.stopArgsForCall)]
+	fake.stopArgsForCall = append(fake.stopArgsForCall, struct{}{})
+	fake.recordInvocation("Stop", []interface{}{})
+	fake.stopMutex.Unlock()
+	if fake.StopStub != nil {
+		return fake.StopStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.stopReturns.result1
+}
+
+func (fake *FakeXfsTracer) StopCallCount() int {
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
+	return len(fake.stopArgsForCall)
+}
+
+func (fake *FakeXfsTracer) StopReturns(result1 error) {
+	fake.StopStub = nil
+	fake.stopReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeXfsTracer) StopReturnsOnCall(i int, result1 error) {
+	fake.StopStub = nil
+	if fake.stopReturnsOnCall == nil {
+		fake.stopReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.stopReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeXfsTracer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
+	fake.startMutex.RLock()
+	defer fake.startMutex.RUnlock()
+	fake.stopMutex.RLock()
+	defer fake.stopMutex.RUnlock()
 	return fake.invocations
 }
 

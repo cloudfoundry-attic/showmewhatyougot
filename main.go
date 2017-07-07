@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"strconv"
 	"time"
 
@@ -40,6 +41,20 @@ func main() {
 	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold, currentStateDetector)
 
 	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector)
+
+	err := xfsTracer.Start()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start XFS Tracer: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	go func(xfsTracer statedetector.XfsTracer) {
+		_ = xfsTracer.Stop()
+		os.Exit(0)
+	}(xfsTracer)
+
 	for true {
 		err := showMeWhatYouGot.Run()
 		if err != nil {
