@@ -13,14 +13,27 @@ import (
 )
 
 func main() {
-	state := *flag.String("state", "D", "Type of state to detect")
-	pollingInterval := *flag.Duration("polling-interval", 10*time.Second, "Interval between process state checks")
-	alertIntervalThreshold := *flag.Int("alert-interval-threshold", 15, "Number of checks before a process is considered in a persistent state")
-	tracingEnabled := *flag.Bool("tracing-enabled", false, "Enable XFS Kernel tracing")
-	processStateCounterBinaryPath := *flag.String("process-state-counter", "", "State process counter binary path")
-	processStateReporterBinaryPath := *flag.String("process-state-reporter", "", "State process reporter binary path")
-	xfsTraceBinaryPath := *flag.String("xfs-trace-path", "", "XFS Trace binary path")
-	pidFilePath := *flag.String("pid-file-path", "", "Path to write out this process's pid file")
+	var (
+		state                          string
+		pollingInterval                time.Duration
+		alertIntervalThreshold         int
+		tracingEnabled                 bool
+		processStateCounterBinaryPath  string
+		processStateReporterBinaryPath string
+		xfsTraceBinaryPath             string
+		pidFilePath                    string
+	)
+
+	flag.StringVar(&state, "state", "D", "Type of state to detect")
+	flag.DurationVar(&pollingInterval, "polling-interval", 10*time.Second, "Interval between process state checks")
+	flag.IntVar(&alertIntervalThreshold, "alert-interval-threshold", 15, "Number of checks before a process is considered in a persistent state")
+	flag.BoolVar(&tracingEnabled, "tracing-enabled", false, "Enable XFS Kernel tracing")
+	flag.StringVar(&processStateCounterBinaryPath, "process-state-counter", "", "State process counter binary path")
+	flag.StringVar(&processStateReporterBinaryPath, "process-state-reporter", "", "State process reporter binary path")
+	flag.StringVar(&xfsTraceBinaryPath, "xfs-trace-path", "", "XFS Trace binary path")
+	flag.StringVar(&pidFilePath, "pid-file-path", "", "Path to write out this process's pid file")
+
+	flag.Parse()
 
 	if pidFilePath != "" {
 		if err := ioutil.WriteFile(pidFilePath, []byte(strconv.Itoa(os.Getpid())), 0600); err != nil {
