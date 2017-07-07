@@ -64,11 +64,12 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 	go func(xfsTracer statedetector.XfsTracer) {
+		<-sig
 		_ = xfsTracer.Stop()
 		os.Exit(0)
 	}(xfsTracer)
 
-	for true {
+	for {
 		err := showMeWhatYouGot.Run()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())

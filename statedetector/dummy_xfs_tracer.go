@@ -4,7 +4,7 @@ type dummyXfsTracer struct {
 }
 
 func NewDummyXfsTracer() XfsTracer {
-	return &binaryXfsTracer{}
+	return &dummyXfsTracer{}
 }
 
 func (b *dummyXfsTracer) Run() error {
