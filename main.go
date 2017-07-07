@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/masters-of-cats/showmewhatyougot/statedetector"
@@ -17,6 +19,14 @@ func main() {
 	processStateCounterBinaryPath := *flag.String("process-state-counter", "", "State process counter binary path")
 	processStateReporterBinaryPath := *flag.String("process-state-reporter", "", "State process reporter binary path")
 	xfsTraceBinaryPath := *flag.String("xfs-trace-path", "", "XFS Trace binary path")
+	pidFilePath := *flag.String("pid-file-path", "", "Path to write out this process's pid file")
+
+	if pidFilePath != "" {
+		if err := ioutil.WriteFile(pidFilePath, []byte(strconv.Itoa(os.Getpid())), 0600); err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to write pid to '%s': %s\n", pidFilePath, err.Error())
+			os.Exit(1)
+		}
+	}
 
 	processStateCounter := statedetector.NewBinaryProcessStateCounter(processStateCounterBinaryPath)
 	processStateReporter := statedetector.NewBinaryProcessStateReporter(processStateReporterBinaryPath)
