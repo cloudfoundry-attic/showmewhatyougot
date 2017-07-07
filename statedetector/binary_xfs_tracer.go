@@ -1,8 +1,8 @@
 package statedetector
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -17,42 +17,40 @@ func NewBinaryXfsTracer(binPath string) XfsTracer {
 }
 
 func (b *binaryXfsTracer) Run() error {
-	cmd, stdoutBuffer, stderrBuffer := b.command("extract")
+	cmd := b.command("extract")
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Running xfs tracer: %s: %s - %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		return fmt.Errorf("Running xfs tracer: %s", err.Error())
 	}
 
 	return nil
 }
 
 func (b *binaryXfsTracer) Start() error {
-	cmd, stdoutBuffer, stderrBuffer := b.command("start")
+	cmd := b.command("start")
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Starting xfs tracer: %s: %s - %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		return fmt.Errorf("Starting xfs tracer: %s", err.Error())
 	}
 
 	return nil
 }
 
 func (b *binaryXfsTracer) Stop() error {
-	cmd, stdoutBuffer, stderrBuffer := b.command("stop")
+	cmd := b.command("stop")
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("Stopping xfs tracer: %s: %s - %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		return fmt.Errorf("Stopping xfs tracer: %s", err.Error())
 	}
 
 	return nil
 }
 
-func (b *binaryXfsTracer) command(action string) (*exec.Cmd, *bytes.Buffer, *bytes.Buffer) {
+func (b *binaryXfsTracer) command(action string) *exec.Cmd {
 	cmd := exec.Command(b.path, action)
 
-	stdoutBuffer := bytes.NewBuffer([]byte{})
-	stderrBuffer := bytes.NewBuffer([]byte{})
-	cmd.Stdout = stdoutBuffer
-	cmd.Stderr = stderrBuffer
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	return cmd, stdoutBuffer, stderrBuffer
+	return cmd
 }

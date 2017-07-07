@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -20,13 +21,12 @@ type currentStateDetector struct {
 func (p *currentStateDetector) Pids() ([]int, error) {
 	cmd := exec.Command("ps", "axho", "pid,state")
 	stdoutBuffer := bytes.NewBuffer([]byte{})
-	stderrBuffer := bytes.NewBuffer([]byte{})
 	cmd.Stdout = stdoutBuffer
-	cmd.Stderr = stderrBuffer
+	cmd.Stderr = os.Stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("Running current state detector: %s: %s - %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		return nil, fmt.Errorf("Running current state detector: %s: %s", err.Error(), stdoutBuffer.String())
 	}
 
 	pids := []int{}
