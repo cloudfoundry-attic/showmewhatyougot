@@ -19,29 +19,43 @@ type currentStateDetector struct {
 }
 
 func (p *currentStateDetector) Pids() ([]int, error) {
-	cmd := exec.Command("ps", "axho", "pid,state")
+	pids, _, err := p.runPS()
+	return pids, err
+}
+
+func (p *currentStateDetector) Processes() ([]string, error) {
+	_, processes, err := p.runPS()
+	return processes, err
+}
+
+func (p *currentStateDetector) runPS() ([]int, []string, error) {
+	cmd := exec.Command("ps", "axho", "pid,state,comm")
 	stdoutBuffer := bytes.NewBuffer([]byte{})
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = os.Stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("Running current state detector: %s: %s", err.Error(), stdoutBuffer.String())
+		return nil, nil, fmt.Errorf("Running current state detector: %s: %s", err.Error(), stdoutBuffer.String())
 	}
 
+	lines := []string{}
 	pids := []int{}
 	scanner := bufio.NewScanner(stdoutBuffer)
 	for scanner.Scan() {
 		var (
 			pid   int
 			state string
+			comm  string
 		)
 
-		_, _ = fmt.Sscanf(scanner.Text(), "%d %s", &pid, &state)
+		line := scanner.Text()
+		_, _ = fmt.Sscanf(line, "%d %s %s", &pid, &state, &comm)
 		if state == p.state {
 			pids = append(pids, pid)
+			lines = append(lines, line)
 		}
 	}
 
-	return pids, nil
+	return pids, lines, nil
 }

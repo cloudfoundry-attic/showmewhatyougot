@@ -16,6 +16,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		processStateCounter     *statedetectorfakes.FakeProcessStateCounter
 		processStateReporter    *statedetectorfakes.FakeProcessStateReporter
 		persistentStateDetector *statedetectorfakes.FakeStateDetector
+		currentStateDetector    *statedetectorfakes.FakeStateDetector
 		xfsTracer               *statedetectorfakes.FakeXfsTracer
 	)
 
@@ -23,9 +24,10 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		processStateCounter = new(statedetectorfakes.FakeProcessStateCounter)
 		processStateReporter = new(statedetectorfakes.FakeProcessStateReporter)
 		persistentStateDetector = new(statedetectorfakes.FakeStateDetector)
+		currentStateDetector = new(statedetectorfakes.FakeStateDetector)
 		xfsTracer = new(statedetectorfakes.FakeXfsTracer)
 
-		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector)
+		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector)
 	})
 
 	Context("when no processes are detected", func() {
@@ -79,6 +81,16 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			Expect(pids).To(ConsistOf(10, 100, 50, 25))
 		})
 
+		It("reports the correct processes", func() {
+			currentStateDetector.ProcessesReturns([]string{"highway to", "the danger", "zone"}, nil)
+
+			Expect(showMeWhatYouGot.Run()).To(Succeed())
+			Expect(processStateReporter.RunCallCount()).To(Equal(1))
+
+			_, processes := processStateReporter.RunArgsForCall(0)
+			Expect(processes).To(ConsistOf("highway to", "the danger", "zone"))
+		})
+
 		Context("when processes are detected a second time", func() {
 			It("still runs count", func() {
 				Expect(showMeWhatYouGot.Run()).To(Succeed())
@@ -99,7 +111,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			})
 		})
 
-		Context("when process state reporter returns an error", func() {
+		Context("when the process state reporter returns an error", func() {
 			BeforeEach(func() {
 				processStateReporter.RunReturns(errors.New("failed"))
 			})
@@ -138,6 +150,17 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		It("fails", func() {
 			err := showMeWhatYouGot.Run()
 			Expect(err).To(MatchError(ContainSubstring("failed to detect")))
+		})
+	})
+
+	Context("when current state detector returns an error", func() {
+		BeforeEach(func() {
+			currentStateDetector.ProcessesReturns(nil, errors.New("failed to detect"))
+		})
+
+		It("doesn't fail", func() {
+			err := showMeWhatYouGot.Run()
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 

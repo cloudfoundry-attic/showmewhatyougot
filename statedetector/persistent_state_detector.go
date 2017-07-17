@@ -34,3 +34,7 @@ func (p *persistentStateDetector) Pids() ([]int, error) {
 	p.persistingProcesses = newPersistingProcesses
 	return persistentPids, nil
 }
+
+func (p *persistentStateDetector) Processes() ([]string, error) {
+	return []string{}, nil
+}

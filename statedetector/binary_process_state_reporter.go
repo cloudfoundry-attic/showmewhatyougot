@@ -26,7 +26,7 @@ func (b *binaryProcessStateReporter) Run(pidList []int, processesList []string) 
 
 	args := []string{
 		strings.Join(pidListArgs, " "),
-		strings.Join(processesList, " "),
+		strings.Join(processesList, "\n"),
 	}
 
 	cmd := exec.Command(b.path, args...)

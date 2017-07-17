@@ -19,6 +19,17 @@ type FakeStateDetector struct {
 		result1 []int
 		result2 error
 	}
+	ProcessesStub        func() ([]string, error)
+	processesMutex       sync.RWMutex
+	processesArgsForCall []struct{}
+	processesReturns     struct {
+		result1 []string
+		result2 error
+	}
+	processesReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -66,11 +77,56 @@ func (fake *FakeStateDetector) PidsReturnsOnCall(i int, result1 []int, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeStateDetector) Processes() ([]string, error) {
+	fake.processesMutex.Lock()
+	ret, specificReturn := fake.processesReturnsOnCall[len(fake.processesArgsForCall)]
+	fake.processesArgsForCall = append(fake.processesArgsForCall, struct{}{})
+	fake.recordInvocation("Processes", []interface{}{})
+	fake.processesMutex.Unlock()
+	if fake.ProcessesStub != nil {
+		return fake.ProcessesStub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.processesReturns.result1, fake.processesReturns.result2
+}
+
+func (fake *FakeStateDetector) ProcessesCallCount() int {
+	fake.processesMutex.RLock()
+	defer fake.processesMutex.RUnlock()
+	return len(fake.processesArgsForCall)
+}
+
+func (fake *FakeStateDetector) ProcessesReturns(result1 []string, result2 error) {
+	fake.ProcessesStub = nil
+	fake.processesReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStateDetector) ProcessesReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.ProcessesStub = nil
+	if fake.processesReturnsOnCall == nil {
+		fake.processesReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.processesReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeStateDetector) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.pidsMutex.RLock()
 	defer fake.pidsMutex.RUnlock()
+	fake.processesMutex.RLock()
+	defer fake.processesMutex.RUnlock()
 	return fake.invocations
 }
 

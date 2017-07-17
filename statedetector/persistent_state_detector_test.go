@@ -28,7 +28,7 @@ var _ = Describe("PersistentStateDetector", func() {
 			currentStateDetector.PidsReturns([]int{100}, nil)
 		})
 
-		It("reports the process as in persistent state after 'count' times", func() {
+		It("reports the pids as in persistent state after 'count' times", func() {
 			pids, err := persistentStateDetector.Pids()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pids).To(BeEmpty())
@@ -43,8 +43,8 @@ var _ = Describe("PersistentStateDetector", func() {
 		})
 	})
 
-	Describe("when a process is in the state for more than 'count' times but they are not consecutive", func() {
-		It("doesn't report the process as persistent", func() {
+	Describe("when a pid is in the state for more than 'count' times but they are not consecutive", func() {
+		It("doesn't report the pid as persistent", func() {
 			currentStateDetector.PidsReturns([]int{100}, nil)
 			pids, err := persistentStateDetector.Pids()
 			Expect(err).NotTo(HaveOccurred())
@@ -55,7 +55,7 @@ var _ = Describe("PersistentStateDetector", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pids).To(BeEmpty())
 
-			currentStateDetector.PidsReturns([]int{1000}, nil)
+			currentStateDetector.PidsReturns([]int{666}, nil)
 			pids, err = persistentStateDetector.Pids()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(pids).To(BeEmpty())
@@ -67,7 +67,7 @@ var _ = Describe("PersistentStateDetector", func() {
 		})
 	})
 
-	Describe("when the current process state fails", func() {
+	Describe("when the current state detector fails", func() {
 		BeforeEach(func() {
 			currentStateDetector.PidsReturns(nil, errors.New("failed"))
 		})
