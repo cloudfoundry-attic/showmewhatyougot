@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 )
 
 type binaryProcessStateCounter struct {
@@ -16,8 +17,8 @@ func NewBinaryProcessStateCounter(binPath string) ProcessStateCounter {
 	}
 }
 
-func (b *binaryProcessStateCounter) Run() error {
-	cmd := exec.Command(b.path)
+func (b *binaryProcessStateCounter) Run(count int) error {
+	cmd := exec.Command(b.path, strconv.Itoa(count))
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

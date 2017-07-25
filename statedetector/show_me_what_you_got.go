@@ -10,7 +10,7 @@ import (
 //go:generate counterfeiter . XfsTracer
 //go:generate counterfeiter . StateDetector
 type ProcessStateCounter interface {
-	Run() error
+	Run(int) error
 }
 
 type ProcessStateReporter interface {
@@ -24,8 +24,8 @@ type XfsTracer interface {
 }
 
 type StateDetector interface {
-	Pids() ([]int, error)
-	Processes() ([]string, error)
+	Pids([]int) ([]int, error)
+	RunPS() ([]int, []string, error)
 }
 
 func NewShowMeWhatYouGot(
@@ -55,27 +55,25 @@ type ShowMeWhatYouGot struct {
 }
 
 func (s *ShowMeWhatYouGot) Run() error {
-	if err := s.processStateCounter.Run(); err != nil {
+	currentPids, currentProcesses, err := s.currentStateDetector.RunPS()
+
+	if err := s.processStateCounter.Run(len(currentPids)); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to publish state counter (%s)\n", err.Error())
 	}
 
-	pids, err := s.persistentStateDetector.Pids()
+	persistentPids, err := s.persistentStateDetector.Pids(currentPids)
 	if err != nil {
 		return err
 	}
 
-	if len(pids) == 0 {
+	if len(persistentPids) == 0 {
 		return nil
 	}
 
 	if !s.alreadyReported {
 		s.alreadyReported = true
-		processes, err := s.currentStateDetector.Processes()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed to list processes: %s\n", err.Error())
-		}
 
-		if err := s.processStateReporter.Run(pids, processes); err != nil {
+		if err := s.processStateReporter.Run(persistentPids, currentProcesses); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed report states (%s)\n", err.Error())
 		}
 	}

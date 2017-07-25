@@ -8,10 +8,12 @@ import (
 )
 
 type FakeProcessStateCounter struct {
-	RunStub        func() error
+	RunStub        func(int) error
 	runMutex       sync.RWMutex
-	runArgsForCall []struct{}
-	runReturns     struct {
+	runArgsForCall []struct {
+		arg1 int
+	}
+	runReturns struct {
 		result1 error
 	}
 	runReturnsOnCall map[int]struct {
@@ -21,14 +23,16 @@ type FakeProcessStateCounter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProcessStateCounter) Run() error {
+func (fake *FakeProcessStateCounter) Run(arg1 int) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
-	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
-	fake.recordInvocation("Run", []interface{}{})
+	fake.runArgsForCall = append(fake.runArgsForCall, struct {
+		arg1 int
+	}{arg1})
+	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub()
+		return fake.RunStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -40,6 +44,12 @@ func (fake *FakeProcessStateCounter) RunCallCount() int {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return len(fake.runArgsForCall)
+}
+
+func (fake *FakeProcessStateCounter) RunArgsForCall(i int) int {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return fake.runArgsForCall[i].arg1
 }
 
 func (fake *FakeProcessStateCounter) RunReturns(result1 error) {

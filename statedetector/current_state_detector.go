@@ -18,17 +18,7 @@ type currentStateDetector struct {
 	state string
 }
 
-func (p *currentStateDetector) Pids() ([]int, error) {
-	pids, _, err := p.runPS()
-	return pids, err
-}
-
-func (p *currentStateDetector) Processes() ([]string, error) {
-	_, processes, err := p.runPS()
-	return processes, err
-}
-
-func (p *currentStateDetector) runPS() ([]int, []string, error) {
+func (p *currentStateDetector) RunPS() ([]int, []string, error) {
 	cmd := exec.Command("ps", "axho", "pid,state,comm")
 	stdoutBuffer := bytes.NewBuffer([]byte{})
 	cmd.Stdout = stdoutBuffer
@@ -58,4 +48,8 @@ func (p *currentStateDetector) runPS() ([]int, []string, error) {
 	}
 
 	return pids, lines, nil
+}
+
+func (p *currentStateDetector) Pids(pids []int) ([]int, error) {
+	return []int{}, nil
 }

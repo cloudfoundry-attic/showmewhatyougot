@@ -51,7 +51,7 @@ func main() {
 	}
 
 	currentStateDetector := statedetector.NewCurrentStateDetector(state)
-	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold, currentStateDetector)
+	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold)
 
 	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector)
 

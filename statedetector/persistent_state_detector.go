@@ -1,29 +1,22 @@
 package statedetector
 
-func NewPersistentStateDetector(persistentStateCountThreshold int, currentStateDetector StateDetector) *persistentStateDetector {
+func NewPersistentStateDetector(persistentStateCountThreshold int) *persistentStateDetector {
 	return &persistentStateDetector{
 		persistentStateCountThreshold: persistentStateCountThreshold,
-		currentStateDetector:          currentStateDetector,
 		persistingProcesses:           map[int]int{},
 	}
 }
 
 type persistentStateDetector struct {
-	currentStateDetector          StateDetector
 	persistentStateCountThreshold int
 	persistingProcesses           map[int]int
 }
 
-func (p *persistentStateDetector) Pids() ([]int, error) {
+func (p *persistentStateDetector) Pids(currentPids []int) ([]int, error) {
 	persistentPids := []int{}
 	newPersistingProcesses := map[int]int{}
 
-	pids, err := p.currentStateDetector.Pids()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, pid := range pids {
+	for _, pid := range currentPids {
 		newPersistingProcesses[pid] = p.persistingProcesses[pid] + 1
 
 		if newPersistingProcesses[pid] >= p.persistentStateCountThreshold {
@@ -35,6 +28,6 @@ func (p *persistentStateDetector) Pids() ([]int, error) {
 	return persistentPids, nil
 }
 
-func (p *persistentStateDetector) Processes() ([]string, error) {
-	return []string{}, nil
+func (p *persistentStateDetector) RunPS() ([]int, []string, error) {
+	return []int{}, []string{}, nil
 }
