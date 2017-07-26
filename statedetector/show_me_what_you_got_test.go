@@ -2,6 +2,7 @@ package statedetector_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/masters-of-cats/showmewhatyougot/statedetector"
 	"github.com/masters-of-cats/showmewhatyougot/statedetector/statedetectorfakes"
@@ -18,6 +19,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		persistentStateDetector *statedetectorfakes.FakeStateDetector
 		currentStateDetector    *statedetectorfakes.FakeStateDetector
 		xfsTracer               *statedetectorfakes.FakeXfsTracer
+		reporterBackoffDuration time.Duration
 	)
 
 	BeforeEach(func() {
@@ -26,8 +28,9 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		persistentStateDetector = new(statedetectorfakes.FakeStateDetector)
 		currentStateDetector = new(statedetectorfakes.FakeStateDetector)
 		xfsTracer = new(statedetectorfakes.FakeXfsTracer)
+		reporterBackoffDuration = 1 * time.Second
 
-		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector)
+		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)
 	})
 
 	Context("when no processes are detected", func() {
@@ -104,10 +107,13 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 				Expect(xfsTracer.RunCallCount()).To(Equal(2))
 			})
 
-			It("doesn't run report anymore", func() {
+			It("doesn't run report until the reporter is reset", func() {
 				Expect(showMeWhatYouGot.Run()).To(Succeed())
 				Expect(showMeWhatYouGot.Run()).To(Succeed())
 				Expect(processStateReporter.RunCallCount()).To(Equal(1))
+				time.Sleep(time.Second * 2)
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(processStateReporter.RunCallCount()).To(Equal(2))
 			})
 		})
 

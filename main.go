@@ -16,6 +16,7 @@ func main() {
 	var (
 		state                          string
 		pollingInterval                time.Duration
+		reporterBackoffDuration        time.Duration
 		alertIntervalThreshold         int
 		tracingEnabled                 bool
 		processStateCounterBinaryPath  string
@@ -26,6 +27,7 @@ func main() {
 
 	flag.StringVar(&state, "state", "D", "Type of state to detect")
 	flag.DurationVar(&pollingInterval, "polling-interval", 10*time.Second, "Interval between process state checks")
+	flag.DurationVar(&reporterBackoffDuration, "reporter-backoff-duration", 10*time.Minute, "Reporting is restricted to one report per backoff duration")
 	flag.IntVar(&alertIntervalThreshold, "alert-interval-threshold", 15, "Number of checks before a process is considered in a persistent state")
 	flag.BoolVar(&tracingEnabled, "tracing-enabled", false, "Enable XFS Kernel tracing")
 	flag.StringVar(&processStateCounterBinaryPath, "process-state-counter", "", "State process counter binary path")
@@ -53,7 +55,7 @@ func main() {
 	currentStateDetector := statedetector.NewCurrentStateDetector(state)
 	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold)
 
-	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector)
+	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)
 
 	err := xfsTracer.Start()
 	if err != nil {

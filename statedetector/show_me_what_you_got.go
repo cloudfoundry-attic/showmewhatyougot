@@ -3,6 +3,7 @@ package statedetector
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 //go:generate counterfeiter . ProcessStateCounter
@@ -34,6 +35,7 @@ func NewShowMeWhatYouGot(
 	xfsTracer XfsTracer,
 	persistentStateDetector StateDetector,
 	currentStateDetector StateDetector,
+	reporterBackoffDuration time.Duration,
 ) *ShowMeWhatYouGot {
 	return &ShowMeWhatYouGot{
 		processStateCounter:     processStateCounter,
@@ -41,6 +43,7 @@ func NewShowMeWhatYouGot(
 		xfsTracer:               xfsTracer,
 		persistentStateDetector: persistentStateDetector,
 		currentStateDetector:    currentStateDetector,
+		reporterBackoffDuration: reporterBackoffDuration,
 	}
 }
 
@@ -51,7 +54,8 @@ type ShowMeWhatYouGot struct {
 	persistentStateDetector StateDetector
 	currentStateDetector    StateDetector
 
-	alreadyReported bool
+	reporterBackoffDuration time.Duration
+	timeOfLastReport        time.Time
 }
 
 func (s *ShowMeWhatYouGot) Run() error {
@@ -70,8 +74,8 @@ func (s *ShowMeWhatYouGot) Run() error {
 		return nil
 	}
 
-	if !s.alreadyReported {
-		s.alreadyReported = true
+	if time.Since(s.timeOfLastReport) > s.reporterBackoffDuration {
+		s.timeOfLastReport = time.Now()
 
 		if err := s.processStateReporter.Run(persistentPids, currentProcesses); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Failed report states (%s)\n", err.Error())
