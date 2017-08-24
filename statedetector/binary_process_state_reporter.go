@@ -9,18 +9,20 @@ import (
 )
 
 type binaryProcessStateReporter struct {
-	path string
+	path          string
+	commandRunner CommandRunner
 }
 
-func NewBinaryProcessStateReporter(binPath string) ProcessStateReporter {
+func NewBinaryProcessStateReporter(commandRunner CommandRunner, binPath string) ProcessStateReporter {
 	return &binaryProcessStateReporter{
-		path: binPath,
+		path:          binPath,
+		commandRunner: commandRunner,
 	}
 }
 
 func (b *binaryProcessStateReporter) Run(pidList []int, processesList []string) error {
 	pidListArgs := []string{}
-	for pid := range pidList {
+	for _, pid := range pidList {
 		pidListArgs = append(pidListArgs, strconv.Itoa(pid))
 	}
 
@@ -34,7 +36,7 @@ func (b *binaryProcessStateReporter) Run(pidList []int, processesList []string) 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
+	err := b.commandRunner.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("Running process state reporter: %s", err.Error())
 	}

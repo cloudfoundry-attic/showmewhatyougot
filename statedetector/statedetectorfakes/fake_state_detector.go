@@ -21,15 +21,15 @@ type FakeStateDetector struct {
 		result1 []int
 		result2 error
 	}
-	RunPSStub        func() ([]int, []string, error)
-	runPSMutex       sync.RWMutex
-	runPSArgsForCall []struct{}
-	runPSReturns     struct {
+	DetectedProcessesStub        func() ([]int, []string, error)
+	detectedProcessesMutex       sync.RWMutex
+	detectedProcessesArgsForCall []struct{}
+	detectedProcessesReturns     struct {
 		result1 []int
 		result2 []string
 		result3 error
 	}
-	runPSReturnsOnCall map[int]struct {
+	detectedProcessesReturnsOnCall map[int]struct {
 		result1 []int
 		result2 []string
 		result3 error
@@ -94,46 +94,46 @@ func (fake *FakeStateDetector) PidsReturnsOnCall(i int, result1 []int, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeStateDetector) RunPS() ([]int, []string, error) {
-	fake.runPSMutex.Lock()
-	ret, specificReturn := fake.runPSReturnsOnCall[len(fake.runPSArgsForCall)]
-	fake.runPSArgsForCall = append(fake.runPSArgsForCall, struct{}{})
-	fake.recordInvocation("RunPS", []interface{}{})
-	fake.runPSMutex.Unlock()
-	if fake.RunPSStub != nil {
-		return fake.RunPSStub()
+func (fake *FakeStateDetector) DetectedProcesses() ([]int, []string, error) {
+	fake.detectedProcessesMutex.Lock()
+	ret, specificReturn := fake.detectedProcessesReturnsOnCall[len(fake.detectedProcessesArgsForCall)]
+	fake.detectedProcessesArgsForCall = append(fake.detectedProcessesArgsForCall, struct{}{})
+	fake.recordInvocation("DetectedProcesses", []interface{}{})
+	fake.detectedProcessesMutex.Unlock()
+	if fake.DetectedProcessesStub != nil {
+		return fake.DetectedProcessesStub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.runPSReturns.result1, fake.runPSReturns.result2, fake.runPSReturns.result3
+	return fake.detectedProcessesReturns.result1, fake.detectedProcessesReturns.result2, fake.detectedProcessesReturns.result3
 }
 
-func (fake *FakeStateDetector) RunPSCallCount() int {
-	fake.runPSMutex.RLock()
-	defer fake.runPSMutex.RUnlock()
-	return len(fake.runPSArgsForCall)
+func (fake *FakeStateDetector) DetectedProcessesCallCount() int {
+	fake.detectedProcessesMutex.RLock()
+	defer fake.detectedProcessesMutex.RUnlock()
+	return len(fake.detectedProcessesArgsForCall)
 }
 
-func (fake *FakeStateDetector) RunPSReturns(result1 []int, result2 []string, result3 error) {
-	fake.RunPSStub = nil
-	fake.runPSReturns = struct {
+func (fake *FakeStateDetector) DetectedProcessesReturns(result1 []int, result2 []string, result3 error) {
+	fake.DetectedProcessesStub = nil
+	fake.detectedProcessesReturns = struct {
 		result1 []int
 		result2 []string
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeStateDetector) RunPSReturnsOnCall(i int, result1 []int, result2 []string, result3 error) {
-	fake.RunPSStub = nil
-	if fake.runPSReturnsOnCall == nil {
-		fake.runPSReturnsOnCall = make(map[int]struct {
+func (fake *FakeStateDetector) DetectedProcessesReturnsOnCall(i int, result1 []int, result2 []string, result3 error) {
+	fake.DetectedProcessesStub = nil
+	if fake.detectedProcessesReturnsOnCall == nil {
+		fake.detectedProcessesReturnsOnCall = make(map[int]struct {
 			result1 []int
 			result2 []string
 			result3 error
 		})
 	}
-	fake.runPSReturnsOnCall[i] = struct {
+	fake.detectedProcessesReturnsOnCall[i] = struct {
 		result1 []int
 		result2 []string
 		result3 error
@@ -145,8 +145,8 @@ func (fake *FakeStateDetector) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.pidsMutex.RLock()
 	defer fake.pidsMutex.RUnlock()
-	fake.runPSMutex.RLock()
-	defer fake.runPSMutex.RUnlock()
+	fake.detectedProcessesMutex.RLock()
+	defer fake.detectedProcessesMutex.RUnlock()
 	return fake.invocations
 }
 

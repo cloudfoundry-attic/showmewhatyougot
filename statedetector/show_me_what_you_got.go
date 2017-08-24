@@ -3,6 +3,7 @@ package statedetector
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 )
 
@@ -10,6 +11,7 @@ import (
 //go:generate counterfeiter . ProcessStateReporter
 //go:generate counterfeiter . XfsTracer
 //go:generate counterfeiter . StateDetector
+//go:generate counterfeiter . CommandRunner
 type ProcessStateCounter interface {
 	Run(int) error
 }
@@ -26,7 +28,11 @@ type XfsTracer interface {
 
 type StateDetector interface {
 	Pids([]int) ([]int, error)
-	RunPS() ([]int, []string, error)
+	DetectedProcesses() ([]int, []string, error)
+}
+
+type CommandRunner interface {
+	Run(*exec.Cmd) error
 }
 
 func NewShowMeWhatYouGot(
@@ -59,7 +65,7 @@ type ShowMeWhatYouGot struct {
 }
 
 func (s *ShowMeWhatYouGot) Run() error {
-	currentPids, currentProcesses, err := s.currentStateDetector.RunPS()
+	currentPids, currentProcesses, err := s.currentStateDetector.DetectedProcesses()
 
 	if err := s.processStateCounter.Run(len(currentPids)); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to publish state counter (%s)\n", err.Error())

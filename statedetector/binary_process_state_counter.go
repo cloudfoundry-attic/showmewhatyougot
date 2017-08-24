@@ -7,23 +7,25 @@ import (
 	"strconv"
 )
 
-type binaryProcessStateCounter struct {
-	path string
+type BinaryProcessStateCounter struct {
+	path          string
+	commandRunner CommandRunner
 }
 
-func NewBinaryProcessStateCounter(binPath string) ProcessStateCounter {
-	return &binaryProcessStateCounter{
-		path: binPath,
+func NewBinaryProcessStateCounter(commandRunner CommandRunner, binPath string) ProcessStateCounter {
+	return &BinaryProcessStateCounter{
+		path:          binPath,
+		commandRunner: commandRunner,
 	}
 }
 
-func (b *binaryProcessStateCounter) Run(count int) error {
+func (b *BinaryProcessStateCounter) Run(count int) error {
 	cmd := exec.Command(b.path, strconv.Itoa(count))
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
+	err := b.commandRunner.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("Running process state counter: %s.", err.Error())
 	}

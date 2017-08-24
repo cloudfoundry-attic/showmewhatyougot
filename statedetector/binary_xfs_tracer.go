@@ -7,18 +7,20 @@ import (
 )
 
 type binaryXfsTracer struct {
-	path string
+	path          string
+	commandRunner CommandRunner
 }
 
-func NewBinaryXfsTracer(binPath string) XfsTracer {
+func NewBinaryXfsTracer(commandRunner CommandRunner, binPath string) XfsTracer {
 	return &binaryXfsTracer{
-		path: binPath,
+		path:          binPath,
+		commandRunner: commandRunner,
 	}
 }
 
 func (b *binaryXfsTracer) Run() error {
 	cmd := b.command("extract")
-	err := cmd.Run()
+	err := b.commandRunner.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("Running xfs tracer: %s", err.Error())
 	}
@@ -28,7 +30,7 @@ func (b *binaryXfsTracer) Run() error {
 
 func (b *binaryXfsTracer) Start() error {
 	cmd := b.command("start")
-	err := cmd.Run()
+	err := b.commandRunner.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("Starting xfs tracer: %s", err.Error())
 	}
@@ -38,7 +40,7 @@ func (b *binaryXfsTracer) Start() error {
 
 func (b *binaryXfsTracer) Stop() error {
 	cmd := b.command("stop")
-	err := cmd.Run()
+	err := b.commandRunner.Run(cmd)
 	if err != nil {
 		return fmt.Errorf("Stopping xfs tracer: %s", err.Error())
 	}

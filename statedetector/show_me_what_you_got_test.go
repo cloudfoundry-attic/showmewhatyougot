@@ -85,7 +85,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		})
 
 		It("reports the correct processes", func() {
-			currentStateDetector.RunPSReturns(nil, []string{"highway to", "the danger", "zone"}, nil)
+			currentStateDetector.DetectedProcessesReturns(nil, []string{"highway to", "the danger", "zone"}, nil)
 
 			Expect(showMeWhatYouGot.Run()).To(Succeed())
 			Expect(processStateReporter.RunCallCount()).To(Equal(1))
@@ -152,7 +152,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 
 	Context("when current state detector returns an error", func() {
 		BeforeEach(func() {
-			currentStateDetector.RunPSReturns(nil, nil, errors.New("failed to detect"))
+			currentStateDetector.DetectedProcessesReturns(nil, nil, errors.New("failed to detect"))
 		})
 
 		It("doesn't fail", func() {

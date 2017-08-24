@@ -8,23 +8,25 @@ import (
 	"os/exec"
 )
 
-func NewCurrentStateDetector(state string) *currentStateDetector {
+func NewCurrentStateDetector(commandRunner CommandRunner, state string) *currentStateDetector {
 	return &currentStateDetector{
-		state: state,
+		state:         state,
+		commandRunner: commandRunner,
 	}
 }
 
 type currentStateDetector struct {
-	state string
+	state         string
+	commandRunner CommandRunner
 }
 
-func (p *currentStateDetector) RunPS() ([]int, []string, error) {
+func (p *currentStateDetector) DetectedProcesses() ([]int, []string, error) {
 	cmd := exec.Command("ps", "axho", "pid,state,comm")
 	stdoutBuffer := bytes.NewBuffer([]byte{})
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
+	err := p.commandRunner.Run(cmd)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Running current state detector: %s: %s", err.Error(), stdoutBuffer.String())
 	}

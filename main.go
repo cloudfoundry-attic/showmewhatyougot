@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/masters-of-cats/showmewhatyougot/runner"
 	"github.com/masters-of-cats/showmewhatyougot/statedetector"
 )
 
@@ -17,6 +18,7 @@ func main() {
 		state                          string
 		pollingInterval                time.Duration
 		reporterBackoffDuration        time.Duration
+		commandsTimeout                time.Duration
 		alertIntervalThreshold         int
 		tracingEnabled                 bool
 		processStateCounterBinaryPath  string
@@ -34,6 +36,7 @@ func main() {
 	flag.StringVar(&processStateReporterBinaryPath, "process-state-reporter", "", "State process reporter binary path")
 	flag.StringVar(&xfsTraceBinaryPath, "xfs-trace-path", "", "XFS Trace binary path")
 	flag.StringVar(&pidFilePath, "pid-file-path", "", "Path to write out this process's pid file")
+	flag.DurationVar(&commandsTimeout, "commands-timeout", 15*time.Second, "Maximum external command duration")
 
 	flag.Parse()
 
@@ -44,15 +47,16 @@ func main() {
 		}
 	}
 
-	processStateCounter := statedetector.NewBinaryProcessStateCounter(processStateCounterBinaryPath)
-	processStateReporter := statedetector.NewBinaryProcessStateReporter(processStateReporterBinaryPath)
+	commandRunner := runner.New(commandsTimeout)
+	processStateCounter := statedetector.NewBinaryProcessStateCounter(commandRunner, processStateCounterBinaryPath)
+	processStateReporter := statedetector.NewBinaryProcessStateReporter(commandRunner, processStateReporterBinaryPath)
 
 	xfsTracer := statedetector.NewDummyXfsTracer()
 	if tracingEnabled {
-		xfsTracer = statedetector.NewBinaryXfsTracer(xfsTraceBinaryPath)
+		xfsTracer = statedetector.NewBinaryXfsTracer(commandRunner, xfsTraceBinaryPath)
 	}
 
-	currentStateDetector := statedetector.NewCurrentStateDetector(state)
+	currentStateDetector := statedetector.NewCurrentStateDetector(commandRunner, state)
 	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold)
 
 	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)

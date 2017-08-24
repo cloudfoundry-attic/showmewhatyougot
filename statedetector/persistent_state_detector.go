@@ -28,6 +28,6 @@ func (p *persistentStateDetector) Pids(currentPids []int) ([]int, error) {
 	return persistentPids, nil
 }
 
-func (p *persistentStateDetector) RunPS() ([]int, []string, error) {
+func (p *persistentStateDetector) DetectedProcesses() ([]int, []string, error) {
 	return []int{}, []string{}, nil
 }
