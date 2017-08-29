@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/masters-of-cats/showmewhatyougot/runner"
-	"github.com/masters-of-cats/showmewhatyougot/statedetector"
+	"code.cloudfoundry.org/showmewhatyougot/runner"
+	"code.cloudfoundry.org/showmewhatyougot/statedetector"
 )
 
 func main() {

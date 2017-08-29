@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/masters-of-cats/showmewhatyougot/runner"
+	"code.cloudfoundry.org/showmewhatyougot/runner"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

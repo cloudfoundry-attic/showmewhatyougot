@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/masters-of-cats/showmewhatyougot/statedetector"
+	"code.cloudfoundry.org/showmewhatyougot/statedetector"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

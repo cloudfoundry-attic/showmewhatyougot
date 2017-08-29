@@ -1,4 +1,4 @@
-package runner
+package runner // import "code.cloudfoundry.org/showmewhatyougot/runner"
 
 import (
 	"fmt"

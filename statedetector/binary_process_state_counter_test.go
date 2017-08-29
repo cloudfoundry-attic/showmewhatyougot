@@ -3,8 +3,8 @@ package statedetector_test
 import (
 	"errors"
 
-	"github.com/masters-of-cats/showmewhatyougot/statedetector"
-	"github.com/masters-of-cats/showmewhatyougot/statedetector/statedetectorfakes"
+	"code.cloudfoundry.org/showmewhatyougot/statedetector"
+	"code.cloudfoundry.org/showmewhatyougot/statedetector/statedetectorfakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

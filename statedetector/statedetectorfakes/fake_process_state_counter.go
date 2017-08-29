@@ -4,7 +4,7 @@ package statedetectorfakes
 import (
 	"sync"
 
-	"github.com/masters-of-cats/showmewhatyougot/statedetector"
+	"code.cloudfoundry.org/showmewhatyougot/statedetector"
 )
 
 type FakeProcessStateCounter struct {
