@@ -7,14 +7,11 @@ import (
 	"code.cloudfoundry.org/showmewhatyougot/statedetector"
 )
 
-type FakeProcessStateReporter struct {
-	RunStub        func(pidList []int, processesList []string) error
+type FakeEventEmitter struct {
+	RunStub        func() error
 	runMutex       sync.RWMutex
-	runArgsForCall []struct {
-		pidList       []int
-		processesList []string
-	}
-	runReturns struct {
+	runArgsForCall []struct{}
+	runReturns     struct {
 		result1 error
 	}
 	runReturnsOnCall map[int]struct {
@@ -24,27 +21,14 @@ type FakeProcessStateReporter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProcessStateReporter) Run(pidList []int, processesList []string) error {
-	var pidListCopy []int
-	if pidList != nil {
-		pidListCopy = make([]int, len(pidList))
-		copy(pidListCopy, pidList)
-	}
-	var processesListCopy []string
-	if processesList != nil {
-		processesListCopy = make([]string, len(processesList))
-		copy(processesListCopy, processesList)
-	}
+func (fake *FakeEventEmitter) Run() error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
-	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		pidList       []int
-		processesList []string
-	}{pidListCopy, processesListCopy})
-	fake.recordInvocation("Run", []interface{}{pidListCopy, processesListCopy})
+	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
+	fake.recordInvocation("Run", []interface{}{})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub(pidList, processesList)
+		return fake.RunStub()
 	}
 	if specificReturn {
 		return ret.result1
@@ -52,26 +36,20 @@ func (fake *FakeProcessStateReporter) Run(pidList []int, processesList []string)
 	return fake.runReturns.result1
 }
 
-func (fake *FakeProcessStateReporter) RunCallCount() int {
+func (fake *FakeEventEmitter) RunCallCount() int {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return len(fake.runArgsForCall)
 }
 
-func (fake *FakeProcessStateReporter) RunArgsForCall(i int) ([]int, []string) {
-	fake.runMutex.RLock()
-	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].pidList, fake.runArgsForCall[i].processesList
-}
-
-func (fake *FakeProcessStateReporter) RunReturns(result1 error) {
+func (fake *FakeEventEmitter) RunReturns(result1 error) {
 	fake.RunStub = nil
 	fake.runReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeProcessStateReporter) RunReturnsOnCall(i int, result1 error) {
+func (fake *FakeEventEmitter) RunReturnsOnCall(i int, result1 error) {
 	fake.RunStub = nil
 	if fake.runReturnsOnCall == nil {
 		fake.runReturnsOnCall = make(map[int]struct {
@@ -83,7 +61,7 @@ func (fake *FakeProcessStateReporter) RunReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeProcessStateReporter) Invocations() map[string][][]interface{} {
+func (fake *FakeEventEmitter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.runMutex.RLock()
@@ -95,7 +73,7 @@ func (fake *FakeProcessStateReporter) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeProcessStateReporter) recordInvocation(key string, args []interface{}) {
+func (fake *FakeEventEmitter) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -107,4 +85,4 @@ func (fake *FakeProcessStateReporter) recordInvocation(key string, args []interf
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ statedetector.ProcessStateReporter = new(FakeProcessStateReporter)
+var _ statedetector.EventEmitter = new(FakeEventEmitter)

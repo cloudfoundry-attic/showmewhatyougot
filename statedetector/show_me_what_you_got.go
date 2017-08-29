@@ -2,7 +2,7 @@ package statedetector
 
 import (
 	"fmt"
-	"os"
+	"io"
 	"os/exec"
 	"time"
 )
@@ -11,6 +11,7 @@ import (
 //go:generate counterfeiter . ProcessStateReporter
 //go:generate counterfeiter . XfsTracer
 //go:generate counterfeiter . StateDetector
+//go:generate counterfeiter . EventEmitter
 //go:generate counterfeiter . CommandRunner
 type ProcessStateCounter interface {
 	Run(int) error
@@ -31,6 +32,10 @@ type StateDetector interface {
 	DetectedProcesses() ([]int, []string, error)
 }
 
+type EventEmitter interface {
+	Run() error
+}
+
 type CommandRunner interface {
 	Run(*exec.Cmd) error
 }
@@ -41,7 +46,9 @@ func NewShowMeWhatYouGot(
 	xfsTracer XfsTracer,
 	persistentStateDetector StateDetector,
 	currentStateDetector StateDetector,
+	eventEmitter EventEmitter,
 	reporterBackoffDuration time.Duration,
+	errorWriter io.Writer,
 ) *ShowMeWhatYouGot {
 	return &ShowMeWhatYouGot{
 		processStateCounter:     processStateCounter,
@@ -49,6 +56,8 @@ func NewShowMeWhatYouGot(
 		xfsTracer:               xfsTracer,
 		persistentStateDetector: persistentStateDetector,
 		currentStateDetector:    currentStateDetector,
+		eventEmitter:            eventEmitter,
+		errorWriter:             errorWriter,
 		reporterBackoffDuration: reporterBackoffDuration,
 	}
 }
@@ -59,6 +68,8 @@ type ShowMeWhatYouGot struct {
 	xfsTracer               XfsTracer
 	persistentStateDetector StateDetector
 	currentStateDetector    StateDetector
+	eventEmitter            EventEmitter
+	errorWriter             io.Writer
 
 	reporterBackoffDuration time.Duration
 	timeOfLastReport        time.Time
@@ -68,7 +79,7 @@ func (s *ShowMeWhatYouGot) Run() error {
 	currentPids, currentProcesses, err := s.currentStateDetector.DetectedProcesses()
 
 	if err := s.processStateCounter.Run(len(currentPids)); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to publish state counter (%s)\n", err.Error())
+		fmt.Fprintf(s.errorWriter, "Warning: Failed to publish state counter (%s)\n", err.Error())
 	}
 
 	persistentPids, err := s.persistentStateDetector.Pids(currentPids)
@@ -84,12 +95,16 @@ func (s *ShowMeWhatYouGot) Run() error {
 		s.timeOfLastReport = time.Now()
 
 		if err := s.processStateReporter.Run(persistentPids, currentProcesses); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: Failed report states (%s)\n", err.Error())
+			fmt.Fprintf(s.errorWriter, "Warning: Failed to report states (%s)\n", err.Error())
+		}
+
+		if err := s.eventEmitter.Run(); err != nil {
+			fmt.Fprintf(s.errorWriter, "Warning: Failed to emit an event (%s)\n", err.Error())
 		}
 	}
 
 	if err := s.xfsTracer.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed run xfs tracer (%s)\n", err.Error())
+		fmt.Fprintf(s.errorWriter, "Warning: Failed to run xfs tracer (%s)\n", err.Error())
 	}
 
 	return nil

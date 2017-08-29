@@ -24,6 +24,7 @@ func main() {
 		processStateCounterBinaryPath  string
 		processStateReporterBinaryPath string
 		xfsTraceBinaryPath             string
+		eventEmitterBinaryPath         string
 		pidFilePath                    string
 	)
 
@@ -35,6 +36,7 @@ func main() {
 	flag.StringVar(&processStateCounterBinaryPath, "process-state-counter", "", "State process counter binary path")
 	flag.StringVar(&processStateReporterBinaryPath, "process-state-reporter", "", "State process reporter binary path")
 	flag.StringVar(&xfsTraceBinaryPath, "xfs-trace-path", "", "XFS Trace binary path")
+	flag.StringVar(&eventEmitterBinaryPath, "event-emitter-path", "", "Event emitter binary path")
 	flag.StringVar(&pidFilePath, "pid-file-path", "", "Path to write out this process's pid file")
 	flag.DurationVar(&commandsTimeout, "commands-timeout", 15*time.Second, "Maximum external command duration")
 
@@ -59,7 +61,9 @@ func main() {
 	currentStateDetector := statedetector.NewCurrentStateDetector(commandRunner, state)
 	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold)
 
-	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)
+	eventEmitter := statedetector.NewBinaryEventEmitter(commandRunner, eventEmitterBinaryPath)
+
+	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, eventEmitter, reporterBackoffDuration, os.Stderr)
 
 	err := xfsTracer.Start()
 	if err != nil {

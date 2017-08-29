@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/showmewhatyougot/statedetector/statedetectorfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("ShowMeWhatYouGot", func() {
@@ -19,7 +20,9 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		persistentStateDetector *statedetectorfakes.FakeStateDetector
 		currentStateDetector    *statedetectorfakes.FakeStateDetector
 		xfsTracer               *statedetectorfakes.FakeXfsTracer
+		eventEmitter            *statedetectorfakes.FakeEventEmitter
 		reporterBackoffDuration time.Duration
+		errorBuffer             *gbytes.Buffer
 	)
 
 	BeforeEach(func() {
@@ -28,9 +31,11 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		persistentStateDetector = new(statedetectorfakes.FakeStateDetector)
 		currentStateDetector = new(statedetectorfakes.FakeStateDetector)
 		xfsTracer = new(statedetectorfakes.FakeXfsTracer)
+		eventEmitter = new(statedetectorfakes.FakeEventEmitter)
 		reporterBackoffDuration = 1 * time.Second
+		errorBuffer = gbytes.NewBuffer()
 
-		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)
+		showMeWhatYouGot = statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, eventEmitter, reporterBackoffDuration, errorBuffer)
 	})
 
 	Context("when no processes are detected", func() {
@@ -52,6 +57,11 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			Expect(showMeWhatYouGot.Run()).To(Succeed())
 			Expect(processStateReporter.RunCallCount()).To(BeZero())
 		})
+
+		It("does not emit an event", func() {
+			Expect(showMeWhatYouGot.Run()).To(Succeed())
+			Expect(eventEmitter.RunCallCount()).To(BeZero())
+		})
 	})
 
 	Context("when processes are detected", func() {
@@ -66,9 +76,33 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			Expect(processStateCounter.RunCallCount()).To(Equal(1))
 		})
 
+		Context("whan the process state counter returns an error", func() {
+			BeforeEach(func() {
+				processStateCounter.RunReturns(errors.New("failed"))
+			})
+
+			It("logs an error but doesn't fail", func() {
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(processStateCounter.RunCallCount()).To(Equal(1))
+				Expect(errorBuffer).To(gbytes.Say("Failed to publish state counter"))
+			})
+		})
+
 		It("does run xfs trace", func() {
 			Expect(showMeWhatYouGot.Run()).To(Succeed())
 			Expect(xfsTracer.RunCallCount()).To(Equal(1))
+		})
+
+		Context("when xfs tracer returns an error", func() {
+			BeforeEach(func() {
+				xfsTracer.RunReturns(errors.New("failed"))
+			})
+
+			It("doesn't fail", func() {
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(xfsTracer.RunCallCount()).To(Equal(1))
+				Expect(errorBuffer).To(gbytes.Say("Failed to run xfs tracer"))
+			})
 		})
 
 		It("does run report", func() {
@@ -94,6 +128,35 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			Expect(processes).To(ConsistOf("highway to", "the danger", "zone"))
 		})
 
+		Context("when the process state reporter returns an error", func() {
+			BeforeEach(func() {
+				processStateReporter.RunReturns(errors.New("failed"))
+			})
+
+			It("doesn't fail", func() {
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(processStateReporter.RunCallCount()).To(Equal(1))
+				Expect(errorBuffer).To(gbytes.Say("Failed to report states"))
+			})
+		})
+
+		It("emits an event", func() {
+			Expect(showMeWhatYouGot.Run()).To(Succeed())
+			Expect(eventEmitter.RunCallCount()).To(Equal(1))
+		})
+
+		Context("when event emitter returns an error", func() {
+			BeforeEach(func() {
+				eventEmitter.RunReturns(errors.New("failed"))
+			})
+
+			It("logs an error but doesn't fail", func() {
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(eventEmitter.RunCallCount()).To(Equal(1))
+				Expect(errorBuffer).To(gbytes.Say("Failed to emit an event"))
+			})
+		})
+
 		Context("when processes are detected a second time", func() {
 			It("still runs count", func() {
 				Expect(showMeWhatYouGot.Run()).To(Succeed())
@@ -115,27 +178,15 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 				Expect(showMeWhatYouGot.Run()).To(Succeed())
 				Expect(processStateReporter.RunCallCount()).To(Equal(2))
 			})
-		})
 
-	})
-
-	Context("when xfs tracer returns an error", func() {
-		BeforeEach(func() {
-			xfsTracer.RunReturns(errors.New("failed"))
-		})
-
-		It("doesn't fail", func() {
-			Expect(showMeWhatYouGot.Run()).To(Succeed())
-		})
-	})
-
-	Context("when the process state reporter returns an error", func() {
-		BeforeEach(func() {
-			processStateReporter.RunReturns(errors.New("failed"))
-		})
-
-		It("doesn't fail", func() {
-			Expect(showMeWhatYouGot.Run()).To(Succeed())
+			It("doesn't emit an event until the reporter is reset", func() {
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(eventEmitter.RunCallCount()).To(Equal(1))
+				time.Sleep(time.Second * 2)
+				Expect(showMeWhatYouGot.Run()).To(Succeed())
+				Expect(eventEmitter.RunCallCount()).To(Equal(2))
+			})
 		})
 	})
 
@@ -146,6 +197,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 
 		It("fails", func() {
 			err := showMeWhatYouGot.Run()
+			Expect(persistentStateDetector.PidsCallCount()).To(Equal(1))
 			Expect(err).To(MatchError(ContainSubstring("failed to detect")))
 		})
 	})
@@ -156,8 +208,8 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		})
 
 		It("doesn't fail", func() {
-			err := showMeWhatYouGot.Run()
-			Expect(err).ToNot(HaveOccurred())
+			Expect(showMeWhatYouGot.Run()).To(Succeed())
+			Expect(currentStateDetector.DetectedProcessesCallCount()).To(Equal(1))
 		})
 	})
 
