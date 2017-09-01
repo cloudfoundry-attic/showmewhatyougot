@@ -37,6 +37,4 @@ func (c *CommandRunner) Run(cmd *exec.Cmd) error {
 	case <-time.After(c.timeOut):
 		return fmt.Errorf("command took more than %f seconds to finish", c.timeOut.Seconds())
 	}
-
-	return nil
 }

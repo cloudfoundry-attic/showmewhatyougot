@@ -15,16 +15,19 @@ import (
 
 func main() {
 	var (
-		state                          string
-		pollingInterval                time.Duration
-		reporterBackoffDuration        time.Duration
-		commandsTimeout                time.Duration
-		alertIntervalThreshold         int
-		tracingEnabled                 bool
-		processStateCounterBinaryPath  string
-		processStateReporterBinaryPath string
-		xfsTraceBinaryPath             string
-		pidFilePath                    string
+		state                        string
+		pollingInterval              time.Duration
+		reporterBackoffDuration      time.Duration
+		commandsTimeout              time.Duration
+		alertIntervalThreshold       int
+		tracingEnabled               bool
+		stateCountReporterBinaryPath string
+		dataCollectorBinaryPath      string
+		xfsTraceBinaryPath           string
+		eventEmitterBinaryPath       string
+		pidFilePath                  string
+		dataPath                     string
+		instanceInfoPath             string
 	)
 
 	flag.StringVar(&state, "state", "D", "Type of state to detect")
@@ -32,10 +35,13 @@ func main() {
 	flag.DurationVar(&reporterBackoffDuration, "reporter-backoff-duration", 10*time.Minute, "Reporting is restricted to one report per backoff duration")
 	flag.IntVar(&alertIntervalThreshold, "alert-interval-threshold", 15, "Number of checks before a process is considered in a persistent state")
 	flag.BoolVar(&tracingEnabled, "tracing-enabled", false, "Enable XFS Kernel tracing")
-	flag.StringVar(&processStateCounterBinaryPath, "process-state-counter", "", "State process counter binary path")
-	flag.StringVar(&processStateReporterBinaryPath, "process-state-reporter", "", "State process reporter binary path")
+	flag.StringVar(&stateCountReporterBinaryPath, "state-count-reporter-path", "", "State process count reporter binary path")
+	flag.StringVar(&dataCollectorBinaryPath, "data-collector-path", "", "Data collector binary path")
 	flag.StringVar(&xfsTraceBinaryPath, "xfs-trace-path", "", "XFS Trace binary path")
+	flag.StringVar(&eventEmitterBinaryPath, "event-emitter-path", "", "Event emitter binary path")
 	flag.StringVar(&pidFilePath, "pid-file-path", "", "Path to write out this process's pid file")
+	flag.StringVar(&dataPath, "data-path", "", "Path to write out collected data to")
+	flag.StringVar(&instanceInfoPath, "instance-info-path", "", "Path to BOSH instance information")
 	flag.DurationVar(&commandsTimeout, "commands-timeout", 15*time.Second, "Maximum external command duration")
 
 	flag.Parse()
@@ -48,8 +54,18 @@ func main() {
 	}
 
 	commandRunner := runner.New(commandsTimeout)
-	processStateCounter := statedetector.NewBinaryProcessStateCounter(commandRunner, processStateCounterBinaryPath)
-	processStateReporter := statedetector.NewBinaryProcessStateReporter(commandRunner, processStateReporterBinaryPath)
+	stateCountReporter := statedetector.NewBinaryProcessStateCounter(commandRunner, stateCountReporterBinaryPath)
+	dataCollector, err := statedetector.NewBinaryDataCollector(
+		commandRunner,
+		dataCollectorBinaryPath,
+		dataPath,
+		instanceInfoPath,
+		time.Now,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to construct data collector: %s\n", err.Error())
+		os.Exit(1)
+	}
 
 	xfsTracer := statedetector.NewDummyXfsTracer()
 	if tracingEnabled {
@@ -59,9 +75,20 @@ func main() {
 	currentStateDetector := statedetector.NewCurrentStateDetector(commandRunner, state)
 	persistentStateDetector := statedetector.NewPersistentStateDetector(alertIntervalThreshold)
 
-	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(processStateCounter, processStateReporter, xfsTracer, persistentStateDetector, currentStateDetector, reporterBackoffDuration)
+	eventEmitter := statedetector.NewBinaryEventEmitter(commandRunner, eventEmitterBinaryPath)
 
-	err := xfsTracer.Start()
+	showMeWhatYouGot := statedetector.NewShowMeWhatYouGot(
+		stateCountReporter,
+		dataCollector,
+		xfsTracer,
+		persistentStateDetector,
+		currentStateDetector,
+		eventEmitter,
+		reporterBackoffDuration,
+		os.Stderr,
+	)
+
+	err = xfsTracer.Start()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to start XFS Tracer: %s\n", err.Error())
 		os.Exit(1)

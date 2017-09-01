@@ -10,24 +10,24 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BinaryProcessStateReporter", func() {
+var _ = Describe("BinaryProcessStateCounter", func() {
 	var (
-		processStateReporter statedetector.ProcessStateReporter
-		commandRunner        *statedetectorfakes.FakeCommandRunner
+		processStateCounter statedetector.ProcessStateCounter
+		commandRunner       *statedetectorfakes.FakeCommandRunner
 	)
 
 	BeforeEach(func() {
 		commandRunner = new(statedetectorfakes.FakeCommandRunner)
-		processStateReporter = statedetector.NewBinaryProcessStateReporter(commandRunner, "/hello")
+		processStateCounter = statedetector.NewBinaryProcessStateCounter(commandRunner, "/hello")
 	})
 
 	Describe("Run", func() {
 		It("executes the binary with the correct arguments", func() {
-			Expect(processStateReporter.Run([]int{100, 101}, []string{"foo", "bar"})).To(Succeed())
+			Expect(processStateCounter.Run(10)).To(Succeed())
 
 			Expect(commandRunner.RunCallCount()).To(Equal(1))
 			cmd := commandRunner.RunArgsForCall(0)
-			Expect(cmd.Args).To(Equal([]string{"/hello", "100 101", "foo\nbar"}))
+			Expect(cmd.Args).To(Equal([]string{"/hello", "10"}))
 		})
 
 		Context("when the command fails", func() {
@@ -36,7 +36,7 @@ var _ = Describe("BinaryProcessStateReporter", func() {
 			})
 
 			It("returns an error", func() {
-				err := processStateReporter.Run([]int{100, 101}, []string{"foo", "bar"})
+				err := processStateCounter.Run(10)
 				Expect(err).To(MatchError(ContainSubstring("failed")))
 			})
 		})

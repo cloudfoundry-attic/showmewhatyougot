@@ -10,24 +10,24 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BinaryProcessStateCounter", func() {
+var _ = Describe("BinaryEventEmitter", func() {
 	var (
-		processStateCounter statedetector.ProcessStateCounter
-		commandRunner       *statedetectorfakes.FakeCommandRunner
+		eventEmitter  statedetector.EventEmitter
+		commandRunner *statedetectorfakes.FakeCommandRunner
 	)
 
 	BeforeEach(func() {
 		commandRunner = new(statedetectorfakes.FakeCommandRunner)
-		processStateCounter = statedetector.NewBinaryProcessStateCounter(commandRunner, "/hello")
+		eventEmitter = statedetector.NewBinaryEventEmitter(commandRunner, "/hello")
 	})
 
 	Describe("Run", func() {
 		It("executes the binary with the correct arguments", func() {
-			Expect(processStateCounter.Run(10)).To(Succeed())
+			Expect(eventEmitter.Run()).To(Succeed())
 
 			Expect(commandRunner.RunCallCount()).To(Equal(1))
 			cmd := commandRunner.RunArgsForCall(0)
-			Expect(cmd.Args).To(Equal([]string{"/hello", "10"}))
+			Expect(cmd.Args).To(Equal([]string{"/hello"}))
 		})
 
 		Context("when the command fails", func() {
@@ -36,7 +36,7 @@ var _ = Describe("BinaryProcessStateCounter", func() {
 			})
 
 			It("returns an error", func() {
-				err := processStateCounter.Run(10)
+				err := eventEmitter.Run()
 				Expect(err).To(MatchError(ContainSubstring("failed")))
 			})
 		})
