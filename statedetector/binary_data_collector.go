@@ -12,13 +12,14 @@ import (
 )
 
 type binaryDataCollector struct {
-	path             string
-	commandRunner    CommandRunner
-	dataPath         string
-	instanceInfoPath string
-	time             func() time.Time
-	instanceID       string
-	instanceName     string
+	path              string
+	commandRunner     CommandRunner
+	dataPath          string
+	instanceInfoPath  string
+	time              func() time.Time
+	instanceID        string
+	instanceName      string
+	dataDirectoryPath string
 }
 
 func NewBinaryDataCollector(
@@ -57,7 +58,7 @@ func (b *binaryDataCollector) runCommand(pidList []int, processesList []string) 
 	args := []string{
 		strings.Join(pidListArgs, " "),
 		strings.Join(processesList, "\n"),
-		b.dataDirectoryPath(),
+		b.dataDirectoryPath,
 	}
 
 	cmd := exec.Command(b.path, args...)
@@ -74,21 +75,22 @@ func (b *binaryDataCollector) runCommand(pidList []int, processesList []string) 
 }
 
 func (b *binaryDataCollector) createDataDirectory() error {
-	return os.Mkdir(b.dataDirectoryPath(), 700)
+	return os.Mkdir(b.generateDataDirectoryPath(), 700)
 }
 
 func (b *binaryDataCollector) deleteDataDirectory() error {
-	return os.RemoveAll(b.dataDirectoryPath())
+	return os.RemoveAll(b.dataDirectoryPath)
 }
 
-func (b *binaryDataCollector) dataDirectoryPath() string {
-	return fmt.Sprintf(
+func (b *binaryDataCollector) generateDataDirectoryPath() string {
+	b.dataDirectoryPath = fmt.Sprintf(
 		"%s/%s-%s-debug-info-%s",
 		b.dataPath,
 		b.instanceName,
 		b.instanceID,
 		b.time().Format("2006-01-02_15-04-05"),
 	)
+	return b.dataDirectoryPath
 }
 
 func (b *binaryDataCollector) getInstanceInformation() error {
