@@ -8,23 +8,25 @@ import (
 )
 
 type FakeDataCollector struct {
-	RunStub        func(pidList []int, processesList []string) error
+	RunStub        func(pidList []int, processesList []string) (string, error)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
 		pidList       []int
 		processesList []string
 	}
 	runReturns struct {
-		result1 error
+		result1 string
+		result2 error
 	}
 	runReturnsOnCall map[int]struct {
-		result1 error
+		result1 string
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDataCollector) Run(pidList []int, processesList []string) error {
+func (fake *FakeDataCollector) Run(pidList []int, processesList []string) (string, error) {
 	var pidListCopy []int
 	if pidList != nil {
 		pidListCopy = make([]int, len(pidList))
@@ -47,9 +49,9 @@ func (fake *FakeDataCollector) Run(pidList []int, processesList []string) error 
 		return fake.RunStub(pidList, processesList)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.runReturns.result1
+	return fake.runReturns.result1, fake.runReturns.result2
 }
 
 func (fake *FakeDataCollector) RunCallCount() int {
@@ -64,23 +66,26 @@ func (fake *FakeDataCollector) RunArgsForCall(i int) ([]int, []string) {
 	return fake.runArgsForCall[i].pidList, fake.runArgsForCall[i].processesList
 }
 
-func (fake *FakeDataCollector) RunReturns(result1 error) {
+func (fake *FakeDataCollector) RunReturns(result1 string, result2 error) {
 	fake.RunStub = nil
 	fake.runReturns = struct {
-		result1 error
-	}{result1}
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeDataCollector) RunReturnsOnCall(i int, result1 error) {
+func (fake *FakeDataCollector) RunReturnsOnCall(i int, result1 string, result2 error) {
 	fake.RunStub = nil
 	if fake.runReturnsOnCall == nil {
 		fake.runReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 string
+			result2 error
 		})
 	}
 	fake.runReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeDataCollector) Invocations() map[string][][]interface{} {

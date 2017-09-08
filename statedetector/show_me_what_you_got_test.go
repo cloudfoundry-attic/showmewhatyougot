@@ -130,7 +130,7 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 
 		Context("when the data collector returns an error", func() {
 			BeforeEach(func() {
-				dataCollector.RunReturns(errors.New("failed"))
+				dataCollector.RunReturns("", errors.New("failed"))
 			})
 
 			It("doesn't fail", func() {
@@ -141,8 +141,12 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 		})
 
 		It("emits an event", func() {
+			dataCollector.RunReturns("/path/to/data.tar.gz", nil)
+
 			Expect(showMeWhatYouGot.Run()).To(Succeed())
+
 			Expect(eventEmitter.RunCallCount()).To(Equal(1))
+			Expect(eventEmitter.RunArgsForCall(0)).To(Equal("/path/to/data.tar.gz"))
 		})
 
 		Context("when event emitter returns an error", func() {

@@ -8,10 +8,12 @@ import (
 )
 
 type FakeEventEmitter struct {
-	RunStub        func() error
+	RunStub        func(string) error
 	runMutex       sync.RWMutex
-	runArgsForCall []struct{}
-	runReturns     struct {
+	runArgsForCall []struct {
+		arg1 string
+	}
+	runReturns struct {
 		result1 error
 	}
 	runReturnsOnCall map[int]struct {
@@ -21,14 +23,16 @@ type FakeEventEmitter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeEventEmitter) Run() error {
+func (fake *FakeEventEmitter) Run(arg1 string) error {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
-	fake.runArgsForCall = append(fake.runArgsForCall, struct{}{})
-	fake.recordInvocation("Run", []interface{}{})
+	fake.runArgsForCall = append(fake.runArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub()
+		return fake.RunStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
@@ -40,6 +44,12 @@ func (fake *FakeEventEmitter) RunCallCount() int {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
 	return len(fake.runArgsForCall)
+}
+
+func (fake *FakeEventEmitter) RunArgsForCall(i int) string {
+	fake.runMutex.RLock()
+	defer fake.runMutex.RUnlock()
+	return fake.runArgsForCall[i].arg1
 }
 
 func (fake *FakeEventEmitter) RunReturns(result1 error) {

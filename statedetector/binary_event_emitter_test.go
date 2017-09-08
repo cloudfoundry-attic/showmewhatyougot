@@ -23,11 +23,11 @@ var _ = Describe("BinaryEventEmitter", func() {
 
 	Describe("Run", func() {
 		It("executes the binary with the correct arguments", func() {
-			Expect(eventEmitter.Run()).To(Succeed())
+			Expect(eventEmitter.Run("world")).To(Succeed())
 
 			Expect(commandRunner.RunCallCount()).To(Equal(1))
 			cmd := commandRunner.RunArgsForCall(0)
-			Expect(cmd.Args).To(Equal([]string{"/hello"}))
+			Expect(cmd.Args).To(Equal([]string{"/hello", "world"}))
 		})
 
 		Context("when the command fails", func() {
@@ -36,7 +36,7 @@ var _ = Describe("BinaryEventEmitter", func() {
 			})
 
 			It("returns an error", func() {
-				err := eventEmitter.Run()
+				err := eventEmitter.Run("")
 				Expect(err).To(MatchError(ContainSubstring("failed")))
 			})
 		})

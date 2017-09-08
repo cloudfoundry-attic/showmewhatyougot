@@ -18,8 +18,8 @@ func NewBinaryEventEmitter(commandRunner CommandRunner, binPath string) EventEmi
 	}
 }
 
-func (b *BinaryEventEmitter) Run() error {
-	cmd := exec.Command(b.path)
+func (b *BinaryEventEmitter) Run(pathToData string) error {
+	cmd := exec.Command(b.path, pathToData)
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

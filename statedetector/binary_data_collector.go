@@ -1,7 +1,9 @@
 package statedetector
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -40,16 +42,16 @@ func NewBinaryDataCollector(
 	return b, b.getInstanceInformation()
 }
 
-func (b *binaryDataCollector) Run(pidList []int, processesList []string) error {
+func (b *binaryDataCollector) Run(pidList []int, processesList []string) (string, error) {
 	if err := b.createDataDirectory(); err != nil {
-		return fmt.Errorf("Creating data directory: %s", err.Error())
+		return "", fmt.Errorf("Creating data directory: %s", err.Error())
 	}
 	defer b.deleteDataDirectory()
 
 	return b.runCommand(pidList, processesList)
 }
 
-func (b *binaryDataCollector) runCommand(pidList []int, processesList []string) error {
+func (b *binaryDataCollector) runCommand(pidList []int, processesList []string) (string, error) {
 	pidListArgs := []string{}
 	for _, pid := range pidList {
 		pidListArgs = append(pidListArgs, strconv.Itoa(pid))
@@ -61,17 +63,18 @@ func (b *binaryDataCollector) runCommand(pidList []int, processesList []string) 
 		b.dataDirectoryPath,
 	}
 
-	cmd := exec.Command(b.path, args...)
+	cmdStdout := new(bytes.Buffer)
 
-	cmd.Stdout = os.Stdout
+	cmd := exec.Command(b.path, args...)
+	cmd.Stdout = io.MultiWriter(os.Stdout, cmdStdout)
 	cmd.Stderr = os.Stderr
 
 	err := b.commandRunner.Run(cmd)
 	if err != nil {
-		return fmt.Errorf("Running process state reporter: %s", err.Error())
+		return "", fmt.Errorf("Running process state reporter: %s", err.Error())
 	}
 
-	return nil
+	return cmdStdout.String(), nil
 }
 
 func (b *binaryDataCollector) createDataDirectory() error {

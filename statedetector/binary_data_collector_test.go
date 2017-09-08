@@ -81,10 +81,31 @@ var _ = Describe("BinaryDataCollector", func() {
 				return nil
 			}
 
-			Expect(dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})).To(Succeed())
+			_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
+			Expect(err).NotTo(HaveOccurred())
 			Expect(commandHasRun).To(BeTrue())
 
 			Expect(dataDir).ToNot(BeAnExistingFile())
+		})
+
+		It("executes the binary with the correct arguments", func() {
+			_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(commandRunner.RunCallCount()).To(Equal(1))
+			cmd := commandRunner.RunArgsForCall(0)
+			Expect(cmd.Args).To(Equal([]string{"/hello", "100 101", "foo\nbar", dataDir}))
+		})
+
+		It("returns the path to the collected data returned by the binary", func() {
+			commandRunner.RunStub = func(cmd *exec.Cmd) error {
+				cmd.Stdout.Write([]byte("/path/to/data.tar.gz"))
+				return nil
+			}
+
+			path, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(path).To(Equal("/path/to/data.tar.gz"))
 		})
 
 		Context("when the data directory can not be created", func() {
@@ -93,17 +114,10 @@ var _ = Describe("BinaryDataCollector", func() {
 			})
 
 			It("does not run the command and returns an error", func() {
-				Expect(dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})).To(MatchError(ContainSubstring("Creating data directory")))
+				_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
+				Expect(err).To(MatchError(ContainSubstring("Creating data directory")))
 				Expect(commandRunner.RunCallCount()).To(Equal(0))
 			})
-		})
-
-		It("executes the binary with the correct arguments", func() {
-			Expect(dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})).To(Succeed())
-
-			Expect(commandRunner.RunCallCount()).To(Equal(1))
-			cmd := commandRunner.RunArgsForCall(0)
-			Expect(cmd.Args).To(Equal([]string{"/hello", "100 101", "foo\nbar", dataDir}))
 		})
 
 		Context("when the command fails", func() {
@@ -112,7 +126,7 @@ var _ = Describe("BinaryDataCollector", func() {
 			})
 
 			It("returns an error", func() {
-				err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
+				_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
 				Expect(commandRunner.RunCallCount()).To(Equal(1))
 				Expect(err).To(MatchError(ContainSubstring("failed")))
 			})

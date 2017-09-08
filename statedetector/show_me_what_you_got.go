@@ -18,7 +18,7 @@ type ProcessStateCounter interface {
 }
 
 type DataCollector interface {
-	Run(pidList []int, processesList []string) error
+	Run(pidList []int, processesList []string) (string, error)
 }
 
 type XfsTracer interface {
@@ -33,7 +33,7 @@ type StateDetector interface {
 }
 
 type EventEmitter interface {
-	Run() error
+	Run(string) error
 }
 
 type CommandRunner interface {
@@ -94,11 +94,12 @@ func (s *ShowMeWhatYouGot) Run() error {
 	if time.Since(s.timeOfLastReport) > s.reporterBackoffDuration {
 		s.timeOfLastReport = time.Now()
 
-		if err := s.dataCollector.Run(persistentPids, currentProcesses); err != nil {
+		pathToData, err := s.dataCollector.Run(persistentPids, currentProcesses)
+		if err != nil {
 			fmt.Fprintf(s.errorWriter, "Warning: Failed to collect debug data (%s)\n", err.Error())
 		}
 
-		if err := s.eventEmitter.Run(); err != nil {
+		if err := s.eventEmitter.Run(pathToData); err != nil {
 			fmt.Fprintf(s.errorWriter, "Warning: Failed to emit an event (%s)\n", err.Error())
 		}
 	}
