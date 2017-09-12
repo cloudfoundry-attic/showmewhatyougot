@@ -97,7 +97,9 @@ var _ = Describe("BinaryDataCollector", func() {
 
 			Context("when the data directory can not be created", func() {
 				BeforeEach(func() {
-					Expect(os.Chmod(dataPath, 0400)).To(Succeed())
+					Expect(os.RemoveAll(dataPath)).To(Succeed())
+					_, err := os.Create(dataPath)
+					Expect(err).NotTo(HaveOccurred())
 				})
 
 				It("does not run any commands and returns an error", func() {
