@@ -18,7 +18,7 @@ type ProcessStateCounter interface {
 }
 
 type DataCollector interface {
-	Run(pidList []int, processesList []string) (string, error)
+	Run(processesList []string) (string, error)
 }
 
 type XfsTracer interface {
@@ -94,7 +94,7 @@ func (s *ShowMeWhatYouGot) Run() error {
 	if time.Since(s.timeOfLastReport) > s.reporterBackoffDuration {
 		s.timeOfLastReport = time.Now()
 
-		pathToData, err := s.dataCollector.Run(persistentPids, currentProcesses)
+		pathToData, err := s.dataCollector.Run(currentProcesses)
 		if err != nil {
 			fmt.Fprintf(s.errorWriter, "Warning: Failed to collect debug data (%s)\n", err.Error())
 		}

@@ -110,21 +110,13 @@ var _ = Describe("ShowMeWhatYouGot", func() {
 			Expect(dataCollector.RunCallCount()).To(Equal(1))
 		})
 
-		It("reports the correct pids", func() {
-			Expect(showMeWhatYouGot.Run()).To(Succeed())
-			Expect(dataCollector.RunCallCount()).To(Equal(1))
-
-			pids, _ := dataCollector.RunArgsForCall(0)
-			Expect(pids).To(ConsistOf(10, 100, 50, 25))
-		})
-
 		It("reports the correct processes", func() {
 			currentStateDetector.DetectedProcessesReturns(nil, []string{"highway to", "the danger", "zone"}, nil)
 
 			Expect(showMeWhatYouGot.Run()).To(Succeed())
 			Expect(dataCollector.RunCallCount()).To(Equal(1))
 
-			_, processes := dataCollector.RunArgsForCall(0)
+			processes := dataCollector.RunArgsForCall(0)
 			Expect(processes).To(ConsistOf("highway to", "the danger", "zone"))
 		})
 

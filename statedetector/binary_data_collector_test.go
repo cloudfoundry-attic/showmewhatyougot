@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/showmewhatyougot/statedetector"
@@ -52,83 +53,213 @@ var _ = Describe("BinaryDataCollector", func() {
 
 	JustBeforeEach(func() {
 		var err error
-		dataCollector, err = statedetector.NewBinaryDataCollector(commandRunner, "/hello", dataPath, instanceInfoPath, timeFunc)
+		dataCollector, err = statedetector.NewBinaryDataCollector(commandRunner, "/badapps", "/data-collector", dataPath, instanceInfoPath, timeFunc)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("NewBinaryDataCollector", func() {
 		It("it fails when the instance name cannot be read", func() {
 			Expect(os.RemoveAll(path.Join(instanceInfoPath, "name"))).To(Succeed())
-			_, err := statedetector.NewBinaryDataCollector(commandRunner, "/hello", dataPath, instanceInfoPath, timeFunc)
+			_, err := statedetector.NewBinaryDataCollector(commandRunner, "/badapps", "/data-collector", dataPath, instanceInfoPath, timeFunc)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("Unable to read instance name file")))
 		})
 
 		It("it fails when the instance id cannot be read", func() {
 			Expect(os.RemoveAll(path.Join(instanceInfoPath, "id"))).To(Succeed())
-			_, err := statedetector.NewBinaryDataCollector(commandRunner, "/hello", dataPath, instanceInfoPath, timeFunc)
+			_, err := statedetector.NewBinaryDataCollector(commandRunner, "/badapps", "/data-collector", dataPath, instanceInfoPath, timeFunc)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("Unable to read instance id file")))
 		})
 	})
 
 	Describe("Run", func() {
-		It("creates and destroys the data directory around the execution of the binary", func() {
-			commandHasRun := false
-			commandRunner.RunStub = func(_ *exec.Cmd) error {
-				Expect(dataDir).To(BeADirectory())
-				commandHasRun = true
-				return nil
-			}
+		Describe("data directory", func() {
+			It("creates and destroys the data directory around the execution of the binary", func() {
+				commandHasRun := false
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					if cmd.Args[0] == "/badapps" {
+						cmd.Stdout.Write([]byte("{}"))
+						return nil
+					}
 
-			_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(commandHasRun).To(BeTrue())
+					Expect(dataDir).To(BeADirectory())
+					commandHasRun = true
+					return nil
+				}
 
-			Expect(dataDir).ToNot(BeAnExistingFile())
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(commandHasRun).To(BeTrue())
+
+				Expect(dataDir).ToNot(BeAnExistingFile())
+			})
+
+			Context("when the data directory can not be created", func() {
+				BeforeEach(func() {
+					Expect(os.Chmod(dataPath, 0400)).To(Succeed())
+				})
+
+				It("does not run any commands and returns an error", func() {
+					_, err := dataCollector.Run([]string{"foo", "bar"})
+					Expect(err).To(MatchError(ContainSubstring("Creating data directory")))
+					Expect(commandRunner.RunCallCount()).To(Equal(0))
+				})
+			})
 		})
 
-		It("executes the binary with the correct arguments", func() {
-			_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
-			Expect(err).NotTo(HaveOccurred())
+		Describe("processes list", func() {
+			It("writes the processes list to a file in the data path", func() {
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					if cmd.Args[0] == "/badapps" {
+						cmd.Stdout.Write([]byte("{}"))
+						return nil
+					}
 
-			Expect(commandRunner.RunCallCount()).To(Equal(1))
-			cmd := commandRunner.RunArgsForCall(0)
-			Expect(cmd.Args).To(Equal([]string{"/hello", "100 101", "foo\nbar", dataDir}))
+					stuff, err := ioutil.ReadFile(path.Join(dataDir, "dstate_processes"))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(stuff)).To(Equal("foo\nbar\n"))
+					return nil
+				}
+
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands run")
+			})
+
+			Context("when the processes list file can't be written", func() {
+				BeforeEach(func() {
+					Expect(os.Mkdir(dataDir, 0700)).To(Succeed())
+					Expect(ioutil.WriteFile(filepath.Join(dataDir, "dstate_processes"), []byte{}, 0600)).To(Succeed())
+				})
+
+				It("continues to run all commands, then returns an error", func() {
+					_, err := dataCollector.Run([]string{"foo", "bar"})
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError(ContainSubstring("dstate_processes: file exists")))
+					Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands run")
+				})
+			})
 		})
 
-		It("returns the path to the collected data returned by the binary", func() {
-			commandRunner.RunStub = func(cmd *exec.Cmd) error {
-				cmd.Stdout.Write([]byte("/path/to/data.tar.gz"))
-				return nil
-			}
+		Describe("application collection binary", func() {
+			It("executes the application collection binary with no additional arguments", func() {
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					if cmd.Args[0] == "/badapps" {
+						cmd.Stdout.Write([]byte("{}"))
+					}
+					return nil
+				}
 
-			path, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(path).To(Equal("/path/to/data.tar.gz"))
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(commandRunner.RunCallCount()).To(Equal(2))
+				cmd := commandRunner.RunArgsForCall(0)
+				Expect(cmd.Args).To(Equal([]string{"/badapps"}))
+			})
+
+			Context("when the application collection binary fails", func() {
+				BeforeEach(func() {
+					commandRunner.RunReturnsOnCall(0, errors.New("application collection failed"))
+				})
+
+				It("continues running further commands but returns an error", func() {
+					_, err := dataCollector.Run([]string{"foo", "bar"})
+					Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands invoked")
+					Expect(err).To(MatchError(ContainSubstring("application collection failed")))
+				})
+			})
 		})
 
-		Context("when the data directory can not be created", func() {
+		Describe("application json", func() {
+			It("writes list of running applications to a file in the data path", func() {
+				applicationsJsonChecked := false
+
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					switch cmd.Args[0] {
+					case "/badapps":
+						cmd.Stdout.Write([]byte(`{"badapps":"output"}`))
+
+					case "/data-collector":
+						jsonBytes, err := ioutil.ReadFile(path.Join(dataDir, "applications.json"))
+						Expect(err).ToNot(HaveOccurred())
+						Expect(string(jsonBytes)).To(Equal(`{
+  "badapps": "output"
+}`))
+						applicationsJsonChecked = true
+					}
+
+					return nil
+				}
+
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands run")
+				Expect(applicationsJsonChecked).To(BeTrue())
+			})
+		})
+
+		Describe("data collection script", func() {
+			It("executes the data collection script with the correct arguments", func() {
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					if cmd.Args[0] == "/badapps" {
+						cmd.Stdout.Write([]byte("{}"))
+					}
+					return nil
+				}
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(commandRunner.RunCallCount()).To(Equal(2))
+				cmd := commandRunner.RunArgsForCall(1)
+				Expect(cmd.Args).To(Equal([]string{"/data-collector", dataDir}))
+			})
+
+			It("returns the path to the collected data returned by the data collection script", func() {
+				commandRunner.RunStub = func(cmd *exec.Cmd) error {
+					if cmd.Args[0] == "/badapps" {
+						cmd.Stdout.Write([]byte("{}"))
+						return nil
+					}
+
+					cmd.Stdout.Write([]byte("/path/to/data.tar.gz"))
+					return nil
+				}
+
+				path, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(path).To(Equal("/path/to/data.tar.gz"))
+			})
+
+			Context("when the data collection script fails", func() {
+				BeforeEach(func() {
+					commandRunner.RunReturnsOnCall(1, errors.New("data collection failed"))
+				})
+
+				It("returns an error", func() {
+					_, err := dataCollector.Run([]string{"foo", "bar"})
+					Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands invoked")
+					Expect(err).To(MatchError(ContainSubstring("data collection failed")))
+				})
+			})
+		})
+
+		Context("when multiple things fail", func() {
 			BeforeEach(func() {
-				dataPath = fmt.Sprintf("%s/non-existent-directory", dataPath)
+				Expect(os.Mkdir(dataDir, 0700)).To(Succeed())
+				Expect(ioutil.WriteFile(filepath.Join(dataDir, "dstate_processes"), []byte{}, 0600)).To(Succeed())
+				commandRunner.RunReturnsOnCall(0, errors.New("application collection failed"))
+				commandRunner.RunReturnsOnCall(1, errors.New("data collection failed"))
 			})
 
-			It("does not run the command and returns an error", func() {
-				_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
-				Expect(err).To(MatchError(ContainSubstring("Creating data directory")))
-				Expect(commandRunner.RunCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when the command fails", func() {
-			BeforeEach(func() {
-				commandRunner.RunReturns(errors.New("failed"))
-			})
-
-			It("returns an error", func() {
-				_, err := dataCollector.Run([]int{100, 101}, []string{"foo", "bar"})
-				Expect(commandRunner.RunCallCount()).To(Equal(1))
-				Expect(err).To(MatchError(ContainSubstring("failed")))
+			It("returns an error containing information about all the failures", func() {
+				_, err := dataCollector.Run([]string{"foo", "bar"})
+				Expect(commandRunner.RunCallCount()).To(Equal(2), "incorrect number of commands invoked")
+				Expect(err).To(MatchError(ContainSubstring("dstate_processes: file exists")))
+				Expect(err).To(MatchError(ContainSubstring("application collection failed")))
+				Expect(err).To(MatchError(ContainSubstring("data collection failed")))
 			})
 		})
 	})

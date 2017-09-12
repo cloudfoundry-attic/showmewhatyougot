@@ -23,6 +23,7 @@ func main() {
 		tracingEnabled               bool
 		stateCountReporterBinaryPath string
 		dataCollectorBinaryPath      string
+		appCollectorBinaryPath       string
 		xfsTraceBinaryPath           string
 		eventEmitterBinaryPath       string
 		pidFilePath                  string
@@ -37,6 +38,7 @@ func main() {
 	flag.BoolVar(&tracingEnabled, "tracing-enabled", false, "Enable XFS Kernel tracing")
 	flag.StringVar(&stateCountReporterBinaryPath, "state-count-reporter-path", "", "State process count reporter binary path")
 	flag.StringVar(&dataCollectorBinaryPath, "data-collector-path", "", "Data collector binary path")
+	flag.StringVar(&appCollectorBinaryPath, "app-collector-path", "", "Application collector binary path")
 	flag.StringVar(&xfsTraceBinaryPath, "xfs-trace-path", "", "XFS Trace binary path")
 	flag.StringVar(&eventEmitterBinaryPath, "event-emitter-path", "", "Event emitter binary path")
 	flag.StringVar(&pidFilePath, "pid-file-path", "", "Path to write out this process's pid file")
@@ -57,6 +59,7 @@ func main() {
 	stateCountReporter := statedetector.NewBinaryProcessStateCounter(commandRunner, stateCountReporterBinaryPath)
 	dataCollector, err := statedetector.NewBinaryDataCollector(
 		commandRunner,
+		appCollectorBinaryPath,
 		dataCollectorBinaryPath,
 		dataPath,
 		instanceInfoPath,
